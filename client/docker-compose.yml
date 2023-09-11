@@ -2,8 +2,8 @@ version: "3"
 
 services:
 
-  ew-server:
-#    restart: unless-stopped
+  ew-client:
+    restart: unless-stopped
     healthcheck:
       test: [
         "CMD-SHELL",
@@ -15,13 +15,18 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    image: ew-server:latest
-    container_name: earthworm-server
+    image: ew-client:latest
+    container_name: earthworm-client
     entrypoint: ["python", "/src/client.py"]
     env_file:
       - .env
     environment:
       - HOST_IP=${HOST_IP}
       - HOST_PORT=${HOST_PORT}
-    ports:
-      - "13340:13340"
+    networks:
+      - ew-server-net
+
+networks:
+    ew-server-net:
+      external: true
+

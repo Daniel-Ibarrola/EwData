@@ -7,8 +7,14 @@ from socketlib import ServerReceiver, ServerSender, WatchDog, get_module_logger
 def main():
     logger = get_module_logger("EWServer", "dev", use_file_handler=False)
 
-    receive_address = os.environ["RECEIVE_IP"], int(os.environ["RECEIVE_PORT"])
-    send_address = os.environ["SEND_IP"], int(os.environ["SEND_PORT"])
+    receive_address = (
+        os.environ.get("RECEIVE_IP", "localhost"),
+        int(os.environ.get("RECEIVE_PORT", 13380))
+    )
+    send_address = (
+        os.environ.get("SEND_IP", "localhost"),
+        int(os.environ.get("SEND_PORT", 13381))
+    )
     logger.info(f"Receive address is {receive_address}")
     logger.info(f"Send address is {send_address}")
 
@@ -21,8 +27,8 @@ def main():
     sender = ServerSender(
         address=send_address,
         to_send=receiver.received,
-        reconnect=False,
-        timeout=5,
+        reconnect=True,
+        timeout=2,
         logger=logger
     )
     watchdog = WatchDog(

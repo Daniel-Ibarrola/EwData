@@ -21,7 +21,10 @@ class MessageGenerator(AbstractService):
 
 def main():
     logger = get_module_logger("TestClient", "dev", use_file_handler=False)
-    address = os.environ["RECEIVE_IP"], int(os.environ["RECEIVE_PORT"])
+    address = (
+        os.environ.get("RECEIVE_IP", "localhost"),
+        int(os.environ.get("RECEIVE_PORT", 13380))
+    )
     logger.info(f"Client will connect to {address}")
 
     msg_gen = MessageGenerator(logger=logger)

@@ -1,13 +1,26 @@
-# EarthwormServer
+# Earthworm data
 
-A server that receives data from earthworm and other clients can connect
-to, to receive the data.
+A server and client to receive data from earthworm.
 
 ## Usage
 
-Download the code and run it in docker:
+Clone this repository:
 
 ```shell
-git clone
+git clone https://github.com/Daniel-Ibarrola/EwData.git
+cd EwData
+```
+
+Start the server:
+
+```shell
+cd server
+docker compose up -d
+```
+
+Start the client:
+
+```shell
+cd client
 docker compose up -d
 ```

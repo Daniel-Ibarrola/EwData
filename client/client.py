@@ -30,7 +30,10 @@ class WaveLogger(AbstractService):
 
 def main():
     logger = get_module_logger("EWClient", "dev", use_file_handler=False)
-    address = os.environ["HOST_IP"], int(os.environ["HOST_PORT"])
+    address = (
+        os.environ.get("HOST_IP", "localhost"),
+        int(os.environ.get("HOST_PORT", 13381))
+    )
     logger.info(f"Client will connect to {address}")
 
     client = ClientReceiver(
