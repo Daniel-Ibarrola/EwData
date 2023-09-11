@@ -1,0 +1,29 @@
+version: "3"
+
+services:
+
+  ew-server:
+#    restart: unless-stopped
+    healthcheck:
+      test: [
+        "CMD-SHELL",
+        "netstat -tn | grep ${RECEIVE_IP}:${RECEIVE_PORT} || exit 1"
+      ]
+      interval: 2m
+      timeout: 10s
+      retries: 3
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: ew-server:latest
+    container_name: earthworm-server
+    entrypoint: ["python", "/src/server.py"]
+    env_file:
+      - .env
+    environment:
+      - RECEIVE_IP=${RECEIVE_IP}
+      - RECEIVE_PORT=${RECEIVE_PORT}
+      - SEND_IP=${SEND_IP}
+      - SEND_PORT=${SEND_PORT}
+    ports:
+      - "13340:13340"

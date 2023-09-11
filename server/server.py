@@ -9,6 +9,9 @@ def main():
 
     receive_address = os.environ["RECEIVE_IP"], int(os.environ["RECEIVE_PORT"])
     send_address = os.environ["SEND_IP"], int(os.environ["SEND_PORT"])
+    logger.info(f"Receive address is {receive_address}")
+    logger.info(f"Send address is {send_address}")
+
     receiver = ServerReceiver(
         address=receive_address,
         reconnect=False,
@@ -28,7 +31,7 @@ def main():
     )
 
     with receiver:
-        while sender:
+        with sender:
 
             receiver.start()
             sender.start()
