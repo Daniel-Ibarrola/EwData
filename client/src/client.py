@@ -6,7 +6,6 @@ import os
 import queue
 from socketlib import AbstractService, ClientReceiver, get_module_logger, WatchDog
 from socketlib.basic.queues import get_from_queue
-import sys
 
 from data import STATIONS, COUNT_TO_GALS
 
@@ -16,16 +15,27 @@ class WaveAnalyzer(AbstractService):
     def __init__(
             self,
             messages: queue.Queue[bytes],
-            station: str,
-            channel: str,
             logger: logging.Logger
     ):
         super().__init__(in_queue=messages, logger=logger)
-        self.station = station
-        self.channel = channel
-        self.conv_factor = COUNT_TO_GALS[station]
-        self.base_line = 0
-        self.means = []
+        self.base_line = self.base_line_dict()
+        self.means = self.means_dict()
+
+    @staticmethod
+    def base_line_dict() -> dict[str, float]:
+        base_lines = {}
+        for station, channels in STATIONS.items():
+            for ch in channels:
+                base_lines[station + ch] = 0.0
+        return base_lines
+
+    @staticmethod
+    def means_dict() -> dict[str, list[float]]:
+        means = {}
+        for station, channels in STATIONS.items():
+            for ch in channels:
+                means[station + ch] = []
+        return means
 
     @property
     def messages(self) -> queue.Queue[bytes]:
@@ -45,20 +55,31 @@ class WaveAnalyzer(AbstractService):
             msg: bytes | None = get_from_queue(self.messages, 2)
             if msg is not None:
                 msg_str = msg.decode()
-                if msg_str.startswith(self.station) and msg_str[5:8] == self.channel:
-                    data = self.wave_data(msg_str)
-                    data = data * self.conv_factor
+                station = msg_str[0:4]
+                if station not in STATIONS:
+                    continue
 
-                    mean = np.mean(data)
-                    normalized = data - mean
-                    baselined = data - self.base_line
+                channel = msg_str[5:8]
+                name = station + channel
 
-                    self.means.append(mean)
-                    if len(self.means) == 30:
-                        self.base_line = sum(self.means) / len(self.means)
-                        self.means.clear()
+                try:
+                    conv_factor = COUNT_TO_GALS[station]
+                except KeyError:
+                    continue
 
-                    self.log_data(data, normalized, baselined)
+                data = self.wave_data(msg_str)
+                data = data * conv_factor
+
+                mean = np.mean(data)
+                normalized = data - mean
+                baselined = data - self.base_line[name]
+
+                self.means[name].append(mean)
+                if len(self.means[name]) == 30:
+                    self.base_line[name] = sum(self.means[name]) / len(self.means[name])
+                    self.means[name].clear()
+
+                self.log_data(station, channel, normalized, baselined)
 
     @staticmethod
     def wave_data(wave: str) -> np.ndarray:
@@ -71,39 +92,27 @@ class WaveAnalyzer(AbstractService):
 
     def log_data(
             self,
-            original: np.ndarray,
+            station: str,
+            channel: str,
             normalized: np.ndarray,
             baselined: np.ndarray
     ) -> None:
-        min_, max_ = original.min(), original.max()
-        if abs(min_) > 3 or abs(max_) > 3:
-            self._logger.info("Original: min {min_}; max {max_}")
-
         min_, max_ = normalized.min(), normalized.max()
         if abs(min_) > 3 or abs(max_) > 3:
-            self._logger.info("Normalized: min {min_}; max {max_}")
+            self._logger.info(f"{station}:{channel} Normalized: min {min_}; max {max_}")
 
         min_, max_ = baselined.min(), baselined.max()
         if abs(min_) > 3 or abs(max_) > 3:
-            self._logger.info("Baselined: min {min_}; max {max_}")
+            self._logger.info(f"{station}:{channel} Baselined: min {min_}; max {max_}")
 
 
 def main():
-    if len(sys.argv) > 1:
-        station = sys.argv[1]
-        if station not in STATIONS:
-            raise ValueError(f"Invalid station {station}")
-    else:
-        station = "S160"
-    channel = list(STATIONS[station])[0]
-
     logger = get_module_logger("EWClient", "dev", use_file_handler=False)
     address = (
         os.environ.get("HOST_IP", "localhost"),
         int(os.environ.get("HOST_PORT", 13381))
     )
     logger.info(f"Client will connect to {address}")
-    logger.info(f"Station {station}. Channel {channel}")
 
     client = ClientReceiver(
         address=address,
@@ -111,7 +120,7 @@ def main():
         timeout=5,
         logger=logger
     )
-    wave_logger = WaveAnalyzer(client.received, station, channel, logger)
+    wave_logger = WaveAnalyzer(client.received, logger)
 
     threads = {
         "receive": client.receive_thread,
