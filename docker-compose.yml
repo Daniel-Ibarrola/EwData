@@ -1,0 +1,24 @@
+version: "3"
+
+services:
+
+  pozo-server:
+#    restart: unless-stopped
+    healthcheck:
+      test: [ "CMD-SHELL", "netstat -tn | grep 172.30.17.220:13026 || exit 1" ]
+      interval: 2m
+      timeout: 10s
+      retries: 3
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: ew-server:latest
+    container_name: earthworm-server
+    entrypoint: ["python", "/src/main.py"]
+    environment:
+      - RECEIVE_IP=pozo-server
+      - RECEIVE_PORT=12280
+      - SEND_IP=13340
+      - SEND_PORT=pozo
+    ports:
+      - "13340:13340"
