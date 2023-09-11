@@ -3,7 +3,7 @@ version: "3"
 services:
 
   ew-client:
-    restart: unless-stopped
+#    restart: unless-stopped
     healthcheck:
       test: [
         "CMD-SHELL",
@@ -23,6 +23,8 @@ services:
     environment:
       - HOST_IP=${HOST_IP}
       - HOST_PORT=${HOST_PORT}
+    volumes:
+      - ./src:/src/
     networks:
       - ew-server-net
 

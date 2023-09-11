@@ -14,8 +14,13 @@ class MessageGenerator(AbstractService):
 
     def _handle_message(self):
         while not self._stop():
-            msg = "Hello World"
-            self.messages.put(msg)
+            msgs = [
+                "S160,HL1,19644550,3,100,200,300",
+                "S160,HL2,19644550,3,100,200,300",
+                "S160,HLZ,19644550,3,100,200,300"
+            ]
+            for msg in msgs:
+                self.messages.put(msg)
             time.sleep(1)
 
 
